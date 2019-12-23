@@ -322,4 +322,5 @@ void wakeUp()
    * The wakeUp() interrupt service routine will run when we get input from ACC (pin 2)
    * Since we just want the device to wake up we do nothing here
    */
+  // test
 }
