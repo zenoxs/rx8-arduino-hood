@@ -9,21 +9,24 @@ const int RPWM_PIN = 5;
 const int LPWM_PIN = 6;
 const int L_EN_PIN = 7;
 const int R_EN_PIN = 8;
-const int ACC_PIN = 2;           // Accessory pin, detect when car start
-const int TILT_PIN = 9;          // Tilt button pin number
-const int OPEN_PIN = 10;         // Open/close button pin number
-const int LED_PIN = 11;          // LED BUTTON
-const int OS_PIN = 12;           // OS BUTTON
-const int BUTTONDELAY = 400;     // Minimum time between button presses
-const int ACCDETECTDELAY = 2000; // Time (ms) that ACC needs to be on before car is considered 'on'
-const int HOODOPENEDVALUE = 194; // Analogue potentiometer value when hood is open
-const int HOODCLOSEDVALUE = 980; // Analogue potentiometer value when hood is closed
-const int HOODPOSTOLERANCE = 10; // Analogue potentiometer value tolerance
-const int TILTVALUE = 30;        // Difference potentiometer value for each tilt
-const int MAXTILT = 2;           // Max hood tilt level
+const int ACC_PIN = 2;             // Accessory pin, detect when car start
+const int TILT_PIN = 9;            // Tilt button pin number
+const int OPEN_PIN = 10;           // Open/close button pin number
+const int SCREEN_PIN = 11;         // SCREEN PIN to turn off or on the screen
+const int OS_PIN = 12;             // OS BUTTON
+const int OS_POWER_RELAY_PIN = 13; // OS POWER RELAY
+const int BUTTONDELAY = 400;       // Minimum time between button presses
+const int ACCDETECTDELAY = 2000;   // Time (ms) that ACC needs to be on before car is considered 'on'
+const int HOODOPENEDVALUE = 157;   // Analogue potentiometer value when hood is open
+const int HOODCLOSEDVALUE = 918;   // Analogue potentiometer value when hood is closed
+const int HOODPOSTOLERANCE = 10;   // Analogue potentiometer value tolerance
+const int TILTVALUE = 15;          // Difference potentiometer value for each tilt
+const int MAXTILT = 2;             // Max hood tilt level
 
 // Defining Global Variables
+boolean screenOff = false;              // Define if the os's screen on/off
 boolean osOff = false;                  // Initialise Operating System state
+boolean osPowerOff = true;              // Define is OS is powered by relay
 boolean carOff = true;                  // Initialise carOff state
 boolean onHoodStatus = HOODCLOSED;      // Track desired hood status when car on, controlled by checkOpenButton()
 boolean currentHoodStatus = HOODCLOSED; // Track current physical hood status, controlled by operateHood()
@@ -39,9 +42,10 @@ void setup()
   pinMode(R_EN_PIN, OUTPUT);
   pinMode(TILT_PIN, INPUT);
   pinMode(OPEN_PIN, INPUT);
-  pinMode(LED_PIN, OUTPUT);
+  pinMode(SCREEN_PIN, OUTPUT);
   pinMode(ACC_PIN, INPUT);
   pinMode(OS_PIN, OUTPUT);
+  pinMode(OS_POWER_RELAY_PIN, OUTPUT);
 
   digitalWrite(RPWM_PIN, LOW);
   digitalWrite(LPWM_PIN, LOW);
@@ -49,8 +53,9 @@ void setup()
   digitalWrite(R_EN_PIN, LOW);
   digitalWrite(TILT_PIN, HIGH);
   digitalWrite(OPEN_PIN, HIGH);
-  digitalWrite(LED_PIN, HIGH);
+  digitalWrite(SCREEN_PIN, LOW);
   digitalWrite(OS_PIN, HIGH);
+  digitalWrite(OS_POWER_RELAY_PIN, LOW);
 
   Serial.begin(9600);
 }
@@ -90,6 +95,8 @@ void checkResume()
     {
       if (onHoodStatus == HOODOPENED)
       {
+        Serial.println("RESUME OPEN");
+        startOS();
         operateHood(OPEN, false); // Restore the previous hood position
         restorePosition();
       }
@@ -110,6 +117,7 @@ void checkOff()
     if (getPotentiometerValue() < (HOODCLOSEDVALUE - HOODPOSTOLERANCE)) // Hood is open, close it
     {
       operateHood(CLOSE, false);
+      stopOS();
     }
     carOff = true;
   }
@@ -128,19 +136,21 @@ void checkOpenButton()
     if (getPotentiometerValue() < (HOODCLOSEDVALUE - HOODPOSTOLERANCE)) // Hood is open
     {
       Serial.println("HOOD IS OPEN");
-      if (osOff == false) // If OS is started we stop it
-      {
-        stopOS();
-      }
       operateHood(CLOSE, false);
       onHoodStatus = HOODCLOSED;
+      if (osOff == false) // If OS is on we turn off the screen
+      {
+        turnOffScreen();
+      }
     }
     else // Hood is closed
     {
       Serial.println("HOOD IS CLOSE");
-      if (osOff) // If OS is stopped we started it
+      if (osOff || osPowerOff) // If OS is stopped we started it
       {
         startOS();
+      } else {
+        turnOnScreen();
       }
       operateHood(OPEN, false);
       restorePosition();
@@ -280,12 +290,32 @@ int getPotentiometerValue()
   return sensorValue;
 }
 
+void turnOffScreen() {
+  Serial.println("turnOffScreen");
+  digitalWrite(SCREEN_PIN, HIGH);
+  delay(500);
+  digitalWrite(SCREEN_PIN, LOW);
+}
+
+void turnOnScreen() {
+  Serial.println("turnOnScreen");
+  digitalWrite(SCREEN_PIN, HIGH);
+  delay(500);
+  digitalWrite(SCREEN_PIN, LOW);
+}
+
 void startOS()
 {
   Serial.println("START OS");
-  digitalWrite(OS_PIN, LOW);
-  delay(1000);
-  digitalWrite(OS_PIN, HIGH);
+  if(osPowerOff){
+    Serial.println("POWER OS ON");
+    digitalWrite(OS_POWER_RELAY_PIN, HIGH);
+    osPowerOff = false;
+  } else {
+    digitalWrite(OS_PIN, LOW);
+    delay(500);
+    digitalWrite(OS_PIN, HIGH);
+  }
   osOff = false;
 }
 
@@ -293,8 +323,11 @@ void stopOS()
 {
   Serial.println("STOP OS");
   digitalWrite(OS_PIN, LOW);
-  delay(5000);
+  delay(5000); // Need to wait 5 sec to trigger turn off
   digitalWrite(OS_PIN, HIGH);
+  delay(20000); // Wait 10 sec for android to turn off
+  digitalWrite(OS_POWER_RELAY_PIN, LOW);
+  osPowerOff = true;
   osOff = true;
 }
 
