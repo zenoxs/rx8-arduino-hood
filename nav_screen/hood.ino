@@ -24,7 +24,6 @@ void openHood(int idx, int v, int up) {
   }else{
     togglePowerScreen();
   }
-  togglePowerScreen();
   operateHood(OPEN);
 }
 

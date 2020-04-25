@@ -93,8 +93,11 @@ void setupEvents() {
 }
 
 void accTurnOn(int idx, int v, int up ) {
-  Serial.println(" ACC ON");
-  toggleHood.trigger(toggleHood.EVT_REFRESH);
+  Serial.println("ACC ON");
+  digitalWrite(SCREEN_PIN, LOW);
+  if(toggleHood.state()){
+    toggleHood.trigger(toggleHood.EVT_REFRESH);
+  }
 }
 
 void accTurnOff(int idx, int v, int up ) {

@@ -9,8 +9,8 @@ void stopOS(int idx, int v, int up)
 {
   Serial.println("STOP OS");
   digitalWrite(OS_PIN, LOW);
-  delay(7000); // Need to wait 5 sec to trigger turn off
+  delay(7000); // Need to wait 7 sec to trigger turn off
   digitalWrite(OS_PIN, HIGH);
-  delay(20000); // Wait 20 sec for android to turn off
+  delay(15000); // Wait 15 sec for android to turn off
   digitalWrite(OS_POWER_RELAY_PIN, LOW);
 }
