@@ -13,10 +13,10 @@ void startMotor(bool dir)
 
   if (dir)
   {
-    analogWrite(RPWM_PIN, 200);
+    analogWrite(RPWM_PIN, 255);
   }
   else
   {
-    analogWrite(LPWM_PIN, 200);
+    analogWrite(LPWM_PIN, 255);
   }
 }

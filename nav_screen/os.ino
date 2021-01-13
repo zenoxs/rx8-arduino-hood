@@ -11,6 +11,6 @@ void stopOS(int idx, int v, int up)
   digitalWrite(OS_PIN, LOW);
   delay(7000); // Need to wait 7 sec to trigger turn off
   digitalWrite(OS_PIN, HIGH);
-  delay(15000); // Wait 15 sec for android to turn off
+  delay(10000); // Wait 15 sec for android to turn off
   digitalWrite(OS_POWER_RELAY_PIN, LOW);
 }

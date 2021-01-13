@@ -99,7 +99,6 @@ SoftwareSerial navControlSerial(GPS_PIN, GPS_PIN); // RX, TX
 
 void setup() {
   navControlSerial.begin(2400);
-  Keyboard.begin();
 
   pinMode(UNIT_AUDIO_PIN, UNIT_AUDIO_PIN_INPUT_MODE);
   attachInterrupt(digitalPinToInterrupt(UNIT_AUDIO_PIN), collectInputData, CHANGE);
@@ -107,6 +106,7 @@ void setup() {
 #ifdef ENABLE_DEBUG_OUTPUT
   Serial.begin(9600);
 #endif
+  Keyboard.begin();
 
   DEBUG_PRINT("Init....\r\n");
 }
@@ -347,6 +347,26 @@ void send_message(const uint8_t *message, const uint8_t lenght) {
   } interrupts();
 }
 
+void return_to_normal_mode()
+{
+  send_message(TAPECMD_PLAYING, sizeof(TAPECMD_PLAYING));
+  delay(7);
+  send_message(TAPECMD_PLAYBACK, sizeof(TAPECMD_PLAYBACK));
+}
+
+// This brings the radio back into a known state after one of the seek
+// buttons is pressed
+void fast_seek_response(const uint8_t *message, const uint8_t lenght)
+{
+    send_message(TAPECMD_SEEKING, sizeof(TAPECMD_SEEKING));
+    delay(8);
+    send_message(message, lenght);
+    delay(8);
+    send_message(TAPECMD_SEEKING, sizeof(TAPECMD_SEEKING));
+    delay(8);
+    return_to_normal_mode();
+}
+
 
 void process_radio_message(const rxMessage_t *message) {
   //check target, 0 is tape desk
@@ -357,36 +377,39 @@ void process_radio_message(const rxMessage_t *message) {
   switch (message->command) {
     case Command_AnyBodyHome:
       DEBUG_PRINT("Any body home msg\r\n");
-
       send_message(TAPECMD_POWER_ON, sizeof(TAPECMD_POWER_ON));
+      delay(8);
       send_message(TAPECMD_CASSETE_PRESENT, sizeof(TAPECMD_CASSETE_PRESENT));
       break;
     case Command_WakeUp:
       DEBUG_PRINT("Wake up msg\r\n");
-
       send_message(TAPECMD_CASSETE_PRESENT, sizeof(TAPECMD_CASSETE_PRESENT));
+      delay(10);
       send_message(TAPECMD_STOPPED, sizeof(TAPECMD_STOPPED));
+      Keyboard.write(MEDIA_PLAY_PAUSE);
       break;
     case Command_Control:
+      // Extract the specific subcommand and command
+      uint8_t subCmd = ((message->data[1] << 4U) & 0xF0) | (message->data[2] & 0x0F);
+      
       if (message->data[0] == SubCommand_Playback) {
-        uint8_t subCmd = ((message->data[1] << 4U) & 0xF0) | (message->data[2] & 0x0F);
         if (subCmd == Playback_Play) {
-          Keyboard.write(MEDIA_PLAY_PAUSE);
           DEBUG_PRINT("Playback MSG = Playback_Play\r\n");
-          send_message(TAPECMD_PLAYING, sizeof(TAPECMD_PLAYING));
-          send_message(TAPECMD_PLAYBACK, sizeof(TAPECMD_PLAYBACK));
+          return_to_normal_mode();
         } else if (subCmd == Playback_FF) {
-          Keyboard.write(KEY_PAGE_UP);
           DEBUG_PRINT("Playback MSG = Playback_FF\r\n");
-          send_message(TAPECMD_PLAYBACK, sizeof(TAPECMD_PLAYBACK));
+          send_message(TAPECMD_SEEKING, sizeof(TAPECMD_SEEKING));
+          Keyboard.write(MEDIA_NEXT);
+          return_to_normal_mode();
         } else if (subCmd == Playback_REW) {
-          Keyboard.write(KEY_PAGE_DOWN);
           DEBUG_PRINT("Playback MSG = Playback_REW\r\n");
-          send_message(TAPECMD_PLAYBACK, sizeof(TAPECMD_PLAYBACK));
+          send_message(TAPECMD_SEEKING, sizeof(TAPECMD_SEEKING));
+          Keyboard.write(MEDIA_PREV);
+          return_to_normal_mode();
         } else if (subCmd == Playback_Stop) {
-          Keyboard.write(MEDIA_PAUSE);
           DEBUG_PRINT("Playback MSG = Playback_Stop\r\n");
           send_message(TAPECMD_STOPPED, sizeof(TAPECMD_STOPPED));
+          Keyboard.write(MEDIA_PAUSE);
         } else {
           DEBUG_PRINT("Playback MSG = ");
           DEBUG_PRINT(subCmd);
@@ -395,21 +418,20 @@ void process_radio_message(const rxMessage_t *message) {
       } else if (message->data[0] == SubCommand_SeekTrack) {
         DEBUG_PRINT("SubCommand_SeekTrack\r\n");
       } else if (message->data[0] == SubCommand_SetConfig) {
-        uint8_t subCmd = ((message->data[1] << 4U) & 0xF0) | (message->data[2] & 0x0F);
         if ( subCmd == SetConfig_RepeatMode) {
           DEBUG_PRINT("SetConfig_RepeatMode\r\n");
-          send_message(TAPECMD_PLAYBACK, sizeof(TAPECMD_PLAYBACK));
+          return_to_normal_mode();
         } else if ( subCmd == SetConfig_RandomMode) {
           DEBUG_PRINT("SetConfig_RandomMode\r\n");
           send_message(TAPECMD_PLAYBACK, sizeof(TAPECMD_PLAYBACK));
         } else if ( subCmd == SetConfig_FastForwarding) {
-          Keyboard.write(KEY_PAGE_UP);
           DEBUG_PRINT("SetConfig_FastForwarding\r\n");
-          send_message(TAPECMD_PLAYBACK, sizeof(TAPECMD_PLAYBACK));
+          Keyboard.write(MEDIA_NEXT);
+          fast_seek_response(TAPECMD_FAST_FORWARD, sizeof(TAPECMD_FAST_FORWARD));
         } else if ( subCmd == SetConfig_FastRewinding ) {
-          Keyboard.write(KEY_PAGE_DOWN);
           DEBUG_PRINT("SetConfig_FastRewinding\r\n");
-          send_message(TAPECMD_PLAYBACK, sizeof(TAPECMD_PLAYBACK));
+          Keyboard.write(MEDIA_PREV);
+          fast_seek_response(TAPECMD_FAST_REWIND,  sizeof(TAPECMD_FAST_REWIND));
         } else {
           DEBUG_PRINT("SubCommand_SetConfig = ");
           DEBUG_PRINT(subCmd);

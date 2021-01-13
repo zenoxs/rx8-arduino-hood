@@ -15,13 +15,13 @@ const int TILT_PIN = 9;            // Tilt button pin number
 const int OPEN_PIN = 10;           // Open/close button pin number
 const int SCREEN_PIN = 11;         // SCREEN PIN to turn off or on the screen
 const int OS_PIN = 12;             // OS BUTTON
-const int OS_POWER_RELAY_PIN = 13; // OS POWER RELAY
+const int OS_POWER_RELAY_PIN = 4; // OS POWER RELAY
 const int BUTTONDELAY = 400;       // Minimum time between button presses
-const int ACC_DETECT_DELAY = 2000;   // Time (ms) that ACC needs to be on before car is considered 'on'
-const int HOODOPENEDVALUE = 157;   // Analogue potentiometer value when hood is open
-const int HOODCLOSEDVALUE = 918;   // Analogue potentiometer value when hood is closed
+const int ACC_DETECT_DELAY = 3000;   // Time (ms) that ACC needs to be on before car is considered 'on'
+const int HOODOPENEDVALUE = 150;   // Analogue potentiometer value when hood is open
+const int HOODCLOSEDVALUE = 850;   // Analogue potentiometer value when hood is closed
 const int HOODPOSTOLERANCE = 10;   // Analogue potentiometer value tolerance
-const int TILTVALUE = 15;          // Difference potentiometer value for each tilt
+const int TILTVALUE = 5;          // Difference potentiometer value for each tilt
 const int MAXTILT = 2;             // Max hood tilt levelEvtManager mgr;
 
 // Defining Global Variables
@@ -66,7 +66,9 @@ void setup() {
 
 void setupEvents() {
   openButton.begin(OPEN_PIN)
-  .onPress(openButtonChanged);
+  .longPress( 2, 400 )
+  .onPress(1, openButtonChanged) 
+  .onPress(2, togglePowerScreen);
 
   tiltButton.begin(TILT_PIN)
   .onPress(tiltButtonChanged);
@@ -90,11 +92,14 @@ void setupEvents() {
 
   timerPowerScreen.begin(500)
   .onTimer(turnPinScreen);
+
+  if(digitalRead(ACC_PIN) == LOW) {
+    sleepNow();
+  }
 }
 
 void accTurnOn(int idx, int v, int up ) {
   Serial.println("ACC ON");
-  digitalWrite(SCREEN_PIN, LOW);
   if(toggleHood.state()){
     toggleHood.trigger(toggleHood.EVT_REFRESH);
   }
@@ -105,6 +110,7 @@ void accTurnOff(int idx, int v, int up ) {
 
   if (toggleHood.state()) {
     Serial.println("HOOD OPEN");
+    // TOOD: Dont turn off screen, because the screen got a memory
     operateHood(CLOSE);
   }
   osPower.trigger(osPower.EVT_OFF);

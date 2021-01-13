@@ -41,7 +41,7 @@ void tiltHood() {
   while (getPotentiometerValue() < currentValue + TILTVALUE)
   {
     Serial.println(analogRead(POTENTIOMETER_PIN));
-    delay(100);
+    delay(10);
   }
   stopMotor();
 }
@@ -54,9 +54,9 @@ void operateHood(bool dir)
     Serial.println(debugString + analogRead(POTENTIOMETER_PIN));
     startMotor(OPEN);
     // Run until we're fully open. If it's run for over 2s stop
-    while (getPotentiometerValue() > HOODOPENEDVALUE && motorRunTime < 200)
+    while (getPotentiometerValue() > HOODOPENEDVALUE && motorRunTime < 2000)
     {
-      delay(100);
+      delay(10);
       motorRunTime++;
     }
     stopMotor();
@@ -69,9 +69,9 @@ void operateHood(bool dir)
     Serial.println(debugString + analogRead(POTENTIOMETER_PIN));
     startMotor(CLOSE);
     // Run until we're fully closed. If it's run for over 2s stop;
-    while (getPotentiometerValue() < HOODCLOSEDVALUE && motorRunTime < 200)
+    while (getPotentiometerValue() < HOODCLOSEDVALUE && motorRunTime < 2000)
     {
-      delay(100);
+      delay(10);
       motorRunTime++;
     }
     stopMotor();
