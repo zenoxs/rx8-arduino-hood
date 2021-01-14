@@ -5,17 +5,17 @@ const bool OPEN = true;
 const bool CLOSE = false;
 const bool HOODOPENED = true;
 const bool HOODCLOSED = false;
-const int POTENTIOMETER_PIN = A5; // Hood potentiometer
-const int RPWM_PIN = 5;
-const int LPWM_PIN = 6;
-const int L_EN_PIN = 7;
-const int R_EN_PIN = 8;
+const int POTENTIOMETER_PIN = A1; // Hood potentiometer
+const int RPWM_PIN = 4;
+const int LPWM_PIN = 5;
+const int L_EN_PIN = 6;
+const int R_EN_PIN = 7;
 const int ACC_PIN = 2;             // Accessory pin, detect when car start
 const int TILT_PIN = 9;            // Tilt button pin number
-const int OPEN_PIN = 10;           // Open/close button pin number
+const int OPEN_PIN = 13;           // Open/close button pin number
 const int SCREEN_PIN = 11;         // SCREEN PIN to turn off or on the screen
 const int OS_PIN = 12;             // OS BUTTON
-const int OS_POWER_RELAY_PIN = 4; // OS POWER RELAY
+const int OS_POWER_RELAY_PIN = 3; // OS POWER RELAY
 const int BUTTONDELAY = 400;       // Minimum time between button presses
 const int ACC_DETECT_DELAY = 3000;   // Time (ms) that ACC needs to be on before car is considered 'on'
 const int HOODOPENEDVALUE = 150;   // Analogue potentiometer value when hood is open
@@ -60,22 +60,21 @@ void setup() {
   digitalWrite(OS_POWER_RELAY_PIN, LOW);
 
   Serial.begin(9600);
+  Serial.println("START");
 
   setupEvents();
 }
 
 void setupEvents() {
   openButton.begin(OPEN_PIN)
-  .longPress( 2, 400 )
-  .onPress(1, openButtonChanged) 
-  .onPress(2, togglePowerScreen);
+  .onPress(openButtonChanged);
 
   tiltButton.begin(TILT_PIN)
   .onPress(tiltButtonChanged);
 
-  accPulse.begin(ACC_PIN, ACC_DETECT_DELAY)
+   accPulse.begin(ACC_PIN, ACC_DETECT_DELAY)
   .onChange(LOW, accTurnOff)
-  .onChange(HIGH, accTurnOn);
+  .onChange(HIGH, accTurnOn); 
 
   osPower.begin()
   .onChange(true, startOS)

@@ -1,11 +1,12 @@
 void openButtonChanged( int idx, int v, int up ) {
+   Serial.println("PRESSED OPEN BUTTON");
   if (v) {
-    Serial.println("PRESSED OPEN BUTTON");
     toggleHood.trigger(toggleHood.EVT_TOGGLE);
   }
 }
 
 void tiltButtonChanged( int idx, int v, int up ) {
+  Serial.println("PRESSED TILT BUTTON");
   if (v && toggleHood.state()) {
     tiltStep.trigger(tiltStep.EVT_STEP);
   }
@@ -87,6 +88,6 @@ bool isHoodHopen() {
 int getPotentiometerValue()
 {
   int sensorValue = analogRead(POTENTIOMETER_PIN);
-  // Serial.println(sensorValue);
+  //Serial.println(sensorValue);
   return sensorValue;
 }
